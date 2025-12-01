@@ -28,6 +28,10 @@ class BallViewModel : ViewModel() {
         }
     }
 
+    // Scale factor to convert physical acceleration to pixel movement
+    // This makes the ball move at a visually appropriate speed
+    private val SCALE_FACTOR = 50f
+
     /**
      * Called by the SensorEventListener in the UI.
      */
@@ -41,12 +45,23 @@ class BallViewModel : ViewModel() {
                 val NS2S = 1.0f / 1000000000.0f
                 val dT = (event.timestamp - lastTimestamp) * NS2S
 
-                // Update ball position and velocity
-                // Note: Gravity sensor reports opposite of actual gravity
-                // Also note: sensor y-axis points up, screen y-axis points down
+                // Gravity sensor values:
+                // values[0] = Gx (positive when tilted right)
+                // values[1] = Gy (positive when tilted backward/up)
+                // values[2] = Gz (positive when screen faces up)
+                //
+                // The gravity sensor measures the direction of gravity relative to the device.
+                // When device is flat (screen up), Gz ≈ 9.8, Gx ≈ 0, Gy ≈ 0
+                // When tilted right, Gx becomes positive (gravity pulls ball right)
+                // When tilted forward (top down), Gy becomes negative (gravity pulls ball down on screen)
+                //
+                // Screen coordinate system: +X is right, +Y is DOWN
+                // So: screen_x_acc = Gx (tilt right = ball goes right)
+                //     screen_y_acc = -Gy (tilt forward = Gy negative = ball goes down = positive screen Y)
+
                 currentBall.updatePositionAndVelocity(
-                    xAcc = -event.values[0],  // Negate because sensor reports opposite
-                    yAcc = event.values[1],   // Positive because screen y is inverted
+                    xAcc = event.values[0] * SCALE_FACTOR,
+                    yAcc = -event.values[1] * SCALE_FACTOR,
                     dT = dT
                 )
 
